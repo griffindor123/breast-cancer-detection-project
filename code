@@ -1,0 +1,146 @@
+ import numpy as np
+import pandas as pd 
+import matplotlib.pyplot as plt
+ 
+import seaborn as sns
+#load data from google drive
+from google.colab import files
+uploaded = files.upload()
+df = pd.read_csv('Breast_Cancer_Diagnostic.csv')
+
+df.head(7)
+#df.drop(columns=['diagnosis'])
+
+
+df.drop(columns=['diagnosis'])
+
+
+df.filter(items=['radius_mean', 'texture_mean','perimeter_mean','area_mean','smoothness_mean','compactness_mean','concavity_mean','concave points_mean','symmetry_mean','fractal_dimension_mean','diagnosis'])
+
+
+#count number of rows and columns
+df.shape
+#count numbers of empty values(NAN,NaN,na) in each column
+df.isna().sum()
+
+#drop the column with missing values
+df.dropna() #writing this no values of the column is shown 
+df.dropna(axis =1) #now here axis = 1 means the value will be shown (axis = 1 means y value is true )
+
+#get a count of malignant or benign cells
+df['diagnosis'].value_counts()
+
+#visualize the count
+sns.countplot(df['diagnosis'],label ='count')
+
+#look at the data types to see which columns need to be encoded
+df.dtypes
+
+
+#encode the categorical data values
+from sklearn.preprocessing import LabelEncoder
+labelencoder_Y = LabelEncoder()
+labelencoder_Y.fit_transform(df.iloc[:,1].values) #colon is to get all the rows and 1 is the column value of diagnosis
+
+df.iloc[:,1] = labelencoder_Y.fit_transform(df.iloc[:,1].values) #to put data back into the data frame
+df.iloc[:,1]
+
+#we want to plot from index 1 to 6 but not including 6
+sns.pairplot(df.iloc[:,1:6])
+
+sns.pairplot(df.iloc[:,1:5],hue = 'diagnosis') #to see diagnosis points
+
+df.head(5)
+
+#get the correlationof the columns
+df.iloc[:,1:12].corr() #id will not appear as column starts from 1
+
+#visualize the correlation
+sns.heatmap(df.iloc[:,1:12].corr())
+
+sns.heatmap(df.iloc[:,1:12].corr(), annot = True) # to get all the values as in correlation
+
+#as the numbers are writing ver indistinctly ,so we can also increase the column size
+plt.figure(figsize = (10,10))
+sns.heatmap(df.iloc[:,1:12].corr(),annot = True)
+
+#to percentalise the same
+plt.figure(figsize=(10,10))
+sns.heatmap(df.iloc[:,1:12].corr(), annot = True,fmt = '.0%')
+
+#split the datasets into independent (X) and dependent column (y) data sets
+X = df.iloc[:,2:31].values
+Y = df.iloc[:,1].values
+type(df)
+
+#split the datasets on 75% training and 25% TESTING
+from sklearn.model_selection import train_test_split
+X_train,X_test,Y_train,Y_test = train_test_split(X,Y, test_size = 0.24 , random_state = 0)
+
+#scale the data (featuring scaling)
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.fit_transform(X_test)
+
+X_train
+
+
+#create func for the models
+def models(X_train,Y_train):
+  #logistic regression
+  from sklearn.linear_model import LogisticRegression
+  log = LogisticRegression(random_state = 0)
+  log.fit(X_train,Y_train)
+
+  #decision tree
+  from sklearn.tree import DecisionTreeClassifier
+  tree = DecisionTreeClassifier(criterion = 'entropy', random_state = 0)
+  tree.fit(X_train,Y_train)
+
+  #random tree classifier
+  from sklearn.ensemble import RandomForestClassifier
+  forest = RandomForestClassifier(n_estimators = 10, criterion = 'entropy',random_state = 0)
+  forest.fit(X_tarin,Y_train)
+
+  #print the model accuracy on tarining data
+  print('[0]LogisticRegression Training accuracy:',log.score(X_train,Y_train))
+  print('[1]DecisionTree Classifier Training accuracy:',tree.score(X_train,Y_train))
+  print('[2]RandomForest Classifier Training accuracy:',forest.score(X_train,Y_train))
+
+  return log,tree,forest
+
+
+
+#getting all of the models
+model = models(X_train,Y_train)
+
+
+#test model accuracy  on test data on confusion matrix
+from sklearn.metrics import confusion_matrix
+for i in range(len(model)):
+  print('Model',i)
+  cm = confusion_matrix(Y_test,model[i].predict(X_test))
+  TP = cm[0][0]
+  TN = cm[1][1]
+  FN = cm[1][0]
+  FP = cm[0][1]  
+  print(cm)
+  print('Testing Accuracy = ',(TP+TN)/(TP+TN+FP+FN))
+  print()
+  
+  #another way to get metrics of the models
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
+for i in range(len(model)):
+  print('Model',i)
+  print(classification_report(Y_test,model[i].predict(X_test))) 
+  print(accuracy_score(Y_test,model[i].predict(X_test)))
+  print()
+  
+  #print the prediction of random forest classifier model
+pred = model[2].predict(X_test)
+print(pred)
+print()
+print(Y_test)
+
